@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
@@ -45,6 +46,37 @@ async function run() {
       .db("Scholarship_Management_System")
       .collection("application");
 
+    // create middelware
+    //verify token
+    const verifyToken = (req, res, next) => {
+      console.log("this is headers : ", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "Unauthorize access!!" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(
+        token,
+        process.env.ASSESS_TOKEN_SECRET,
+        function (err, decoded) {
+          if (err) {
+            return res.status(401).send({ message: "Unauthorize access!!" });
+          }
+          req.decoded = decoded;
+          next();
+        }
+      );
+    };
+
+    // create token JWT**************************
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ASSESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      // console.log(token);
+      res.send({ token });
+    });
+
     //*********************All Scholarship************************** */
 
     //find all scholarship data
@@ -71,7 +103,7 @@ async function run() {
     //********Application***************/
 
     //post application information in db
-    app.post(`/application`, async (req, res) => {
+    app.post(`/application`, verifyToken, async (req, res) => {
       const application = req.body;
       const result = await applyInfoCollection.insertOne(application);
       res.send(result);
@@ -80,7 +112,7 @@ async function run() {
     //**********payment *************** */
 
     // payment intent
-    app.post("/create-payment-intent", async (req, res) => {
+    app.post("/create-payment-intent", verifyToken, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
       console.log(amount, "amount inside the intent");
@@ -97,7 +129,7 @@ async function run() {
     });
 
     //add payment information
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", verifyToken, async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
       res.send(paymentResult);
