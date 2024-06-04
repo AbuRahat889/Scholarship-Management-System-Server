@@ -115,10 +115,18 @@ async function run() {
     // });
 
     //get application info by user email
-    app.get("/application", async (req, res) => {
+    app.get("/application", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { Applicant_email: email };
       const result = await applyInfoCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //delete applicaation
+    app.delete(`/application/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await applyInfoCollection.deleteOne(quary);
       res.send(result);
     });
 
