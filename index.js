@@ -108,6 +108,19 @@ async function run() {
       const result = await applyInfoCollection.insertOne(application);
       res.send(result);
     });
+    //get all application info
+    // app.get(`/applications`, async (req, res) => {
+    //   const result = await applyInfoCollection.find().toArray();
+    //   res.send(result);
+    // });
+
+    //get application info by user email
+    app.get("/application", async (req, res) => {
+      const email = req.query.email;
+      const query = { Applicant_email: email };
+      const result = await applyInfoCollection.find(query).toArray();
+      res.send(result);
+    });
 
     //**********payment *************** */
 
@@ -134,6 +147,7 @@ async function run() {
       const paymentResult = await paymentCollection.insertOne(payment);
       res.send(paymentResult);
     });
+    //get payment information by email
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
