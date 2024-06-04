@@ -41,6 +41,10 @@ async function run() {
       .db("Scholarship_Management_System")
       .collection("payments");
 
+    const applyInfoCollection = client
+      .db("Scholarship_Management_System")
+      .collection("application");
+
     //*********************All Scholarship************************** */
 
     //find all scholarship data
@@ -64,8 +68,17 @@ async function run() {
       res.send(result);
     });
 
+    //********Application***************/
+
+    //post application information in db
+    app.post(`/application`, async (req, res) => {
+      const application = req.body;
+      const result = await applyInfoCollection.insertOne(application);
+      res.send(result);
+    });
 
     //**********payment *************** */
+
     // payment intent
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
@@ -83,9 +96,7 @@ async function run() {
       });
     });
 
-
-
-    //add payment information 
+    //add payment information
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
