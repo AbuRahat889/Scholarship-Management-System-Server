@@ -100,6 +100,13 @@ async function run() {
       res.send(result);
     });
 
+    //post a review
+    app.post(`/review`, async(req,res)=>{
+      const review= req.body;
+      const result = await ReviewsCollection.insertOne(review);
+      res.send(result);
+    })
+
     //********Application***************/
 
     //post application information in db
