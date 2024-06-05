@@ -95,17 +95,59 @@ async function run() {
 
     //******************Reviews************ */
     //find all reaview
-    app.get(`/reviews`, async (req, res) => {
+    app.get(`/reviews`,  async (req, res) => {
       const result = await ReviewsCollection.find().toArray();
+      res.send(result);
+    });
+    //find review by email Reviewer_email
+    app.get("/review",  async (req, res) => {
+      const email = req.query.email;
+      const query = { Reviewer_email: email };
+      const result = await ReviewsCollection.find(query).toArray();
       res.send(result);
     });
 
     //post a review
-    app.post(`/review`, async(req,res)=>{
-      const review= req.body;
+    app.post(`/review`, async (req, res) => {
+      const review = req.body;
       const result = await ReviewsCollection.insertOne(review);
       res.send(result);
-    })
+    });
+
+    // find  review info by id
+    app.get(`/reviews/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await ReviewsCollection.findOne(quary);
+      res.send(result);
+    });
+
+    //update review info
+    app.put(`/review/:id`, async (req, res) => {
+      const id = req.params.id;
+      const reviewInfo = req.body;
+      const quary = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          ...reviewInfo,
+        },
+      };
+      const options = { upsert: true };
+      const result = await ReviewsCollection.updateOne(
+        quary,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    //delete review
+    app.delete(`/review/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await ReviewsCollection.deleteOne(quary);
+      res.send(result);
+    });
 
     //********Application***************/
 
