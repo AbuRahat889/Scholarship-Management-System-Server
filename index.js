@@ -108,11 +108,33 @@ async function run() {
       const result = await applyInfoCollection.insertOne(application);
       res.send(result);
     });
-    //get all application info
-    // app.get(`/applications`, async (req, res) => {
-    //   const result = await applyInfoCollection.find().toArray();
-    //   res.send(result);
-    // });
+
+    // get  application info by id
+    app.get(`/applications/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await applyInfoCollection.findOne(quary);
+      res.send(result);
+    });
+
+    //update application info
+    app.put(`/applications/:id`, async (req, res) => {
+      const id = req.params.id;
+      const applyInfo = req.body;
+      const quary = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          ...applyInfo,
+        },
+      };
+      const options = { upsert: true };
+      const result = await applyInfoCollection.updateOne(
+        quary,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
 
     //get application info by user email
     app.get("/application", verifyToken, async (req, res) => {
