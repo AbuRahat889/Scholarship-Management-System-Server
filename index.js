@@ -46,6 +46,10 @@ async function run() {
       .db("Scholarship_Management_System")
       .collection("application");
 
+    const userCollection = client
+      .db("Scholarship_Management_System")
+      .collection("Users");
+
     // create middelware
     //verify token
     const verifyToken = (req, res, next) => {
@@ -67,6 +71,19 @@ async function run() {
       );
     };
 
+    //verify admin after verify token
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      const isAdmin = result.role === "admin";
+
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     // create token JWT**************************
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -77,8 +94,75 @@ async function run() {
       res.send({ token });
     });
 
+    //*************user informaton  admin routs************* */
+
+    //post user information sign up page
+    app.post("/users", async (req, res) => {
+      const userInfo = req.body;
+      const query = { email: userInfo.email };
+      const exitUser = await userCollection.findOne(query);
+      if (exitUser) {
+        return res.send({ message: "user already exits", insertedId: null });
+      }
+      const result = await userCollection.insertOne(userInfo);
+      res.send(result);
+    });
+
+    //get all user information
+    app.get(`/users`, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    //delete user
+    app.delete(`/users/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(quary);
+      res.send(result);
+    });
+
+    //get admin emeil,, load admin email (useAdmin hook )
+    app.get(`/users/admin/:email`, verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded?.email) {
+        return res.status(403).send({ message: "forbidden access!" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "admin";
+      }
+      res.send({ admin });
+    });
+
+    //create admin (set admin in allUser (admin) page)
+    app.patch(
+      `/users/admin/:id`,
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: "admin",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
+
     //*********************All Scholarship************************** */
 
+    //post scholarship
+    app.post(`/scholarship`,async(req, res)=>{
+      const scholarInfo = req.body;
+      const result = await AllScholarshipCollection.insertOne(scholarInfo);
+      res.send(result);
+    })
     //find all scholarship data
     app.get("/scholarship", async (req, res) => {
       const result = await AllScholarshipCollection.find().toArray();
@@ -95,12 +179,12 @@ async function run() {
 
     //******************Reviews************ */
     //find all reaview
-    app.get(`/reviews`,  async (req, res) => {
+    app.get(`/reviews`, async (req, res) => {
       const result = await ReviewsCollection.find().toArray();
       res.send(result);
     });
     //find review by email Reviewer_email
-    app.get("/review",  async (req, res) => {
+    app.get("/review", async (req, res) => {
       const email = req.query.email;
       const query = { Reviewer_email: email };
       const result = await ReviewsCollection.find(query).toArray();
