@@ -158,11 +158,11 @@ async function run() {
     //*********************All Scholarship************************** */
 
     //post scholarship
-    app.post(`/scholarship`,async(req, res)=>{
+    app.post(`/scholarship`, async (req, res) => {
       const scholarInfo = req.body;
       const result = await AllScholarshipCollection.insertOne(scholarInfo);
       res.send(result);
-    })
+    });
     //find all scholarship data
     app.get("/scholarship", async (req, res) => {
       const result = await AllScholarshipCollection.find().toArray();
@@ -177,12 +177,39 @@ async function run() {
       res.send(result);
     });
 
+    //update scholarship information
+    app.put(`/scholarship/:id`, async (req, res) => {
+      const id = req.params.id;
+      const updateInfo = req.body;
+      const quary = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...updateInfo,
+        },
+      };
+      const result = await AllScholarshipCollection.updateOne(
+        quary,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+    //delete scholarship by id
+    app.delete(`/scholarship/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await AllScholarshipCollection.deleteOne(quary);
+      res.send(result);
+    });
+
     //******************Reviews************ */
     //find all reaview
     app.get(`/reviews`, async (req, res) => {
       const result = await ReviewsCollection.find().toArray();
       res.send(result);
     });
+
     //find review by email Reviewer_email
     app.get("/review", async (req, res) => {
       const email = req.query.email;
