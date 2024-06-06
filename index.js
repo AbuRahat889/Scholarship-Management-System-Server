@@ -262,6 +262,11 @@ async function run() {
 
     //********Application***************/
 
+    //get all application information
+    app.get(`/applications`, async (req, res) => {
+      const result = await applyInfoCollection.find().toArray();
+      res.send(result);
+    });
     //post application information in db
     app.post(`/application`, verifyToken, async (req, res) => {
       const application = req.body;
@@ -293,6 +298,33 @@ async function run() {
         updateDoc,
         options
       );
+      res.send(result);
+    });
+
+    //update application Status processing
+    app.patch(`/application/:id`, async (req, res) => {
+      const id = req.params.id;
+      const statusInfo = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          Status: "processing",
+        },
+      };
+      const result = await applyInfoCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    //update application Status complete
+    app.patch(`/applicationc/:id`, async (req, res) => {
+      const id = req.params.id;
+      const statusInfo = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          Status: "complete",
+        },
+      };
+      const result = await applyInfoCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
