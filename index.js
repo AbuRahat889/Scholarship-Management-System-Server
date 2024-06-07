@@ -53,7 +53,7 @@ async function run() {
     // create middelware
     //verify token
     const verifyToken = (req, res, next) => {
-      console.log("this is headers : ", req.headers.authorization);
+      // console.log("this is headers : ", req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: "Unauthorize access!!" });
       }
@@ -138,22 +138,19 @@ async function run() {
     });
 
     //create admin (set admin in allUser (admin) page)
-    app.patch(
-      `/users/admin/:id`,
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: {
-            role: "admin",
-          },
-        };
-        const result = await userCollection.updateOne(filter, updateDoc);
-        res.send(result);
-      }
-    );
+    app.patch(`/users/admin/:id`, async (req, res) => {
+      const id = req.params.id;
+      const userRole = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      console.log(result);
+      res.send(result);
+    });
 
     //*********************All Scholarship************************** */
 
