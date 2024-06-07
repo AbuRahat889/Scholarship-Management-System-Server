@@ -26,11 +26,10 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // AllScholarship
-    // Reviews
+
     //Scholarship_Management_System
 
-    //Collection
+    //All Collection
     const AllScholarshipCollection = client
       .db("Scholarship_Management_System")
       .collection("AllScholarship");
@@ -108,14 +107,14 @@ async function run() {
       res.send(result);
     });
 
-    //get all user information
-    app.get(`/users`, async (req, res) => {
+    //get all user information (Admin)
+    app.get(`/users`, verifyToken, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
     //delete user
-    app.delete(`/users/:id`, async (req, res) => {
+    app.delete(`/users/:id`, verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(quary);
@@ -138,35 +137,40 @@ async function run() {
     });
 
     //create admin (set admin in allUser (admin) page)
-    app.patch(`/users/admin/:id`, async (req, res) => {
-      const id = req.params.id;
-      const userRole = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      console.log(result);
-      res.send(result);
-    });
+    app.patch(
+      `/users/admin/:id`,
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const userRole = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: "admin",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        console.log(result);
+        res.send(result);
+      }
+    );
 
     //*********************All Scholarship************************** */
 
     //post scholarship
-    app.post(`/scholarship`, async (req, res) => {
+    app.post(`/scholarship`, verifyToken, verifyAdmin, async (req, res) => {
       const scholarInfo = req.body;
       const result = await AllScholarshipCollection.insertOne(scholarInfo);
       res.send(result);
     });
-    //find all scholarship data
+    //find all scholarship data (open)
     app.get("/scholarship", async (req, res) => {
       const result = await AllScholarshipCollection.find().toArray();
       res.send(result);
     });
 
-    //find scholarship data by Id
+    //find scholarship data by Id (user)
     app.get(`/scholarship/:id`, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
@@ -174,8 +178,8 @@ async function run() {
       res.send(result);
     });
 
-    //update scholarship information
-    app.put(`/scholarship/:id`, async (req, res) => {
+    //update scholarship information (admin)
+    app.put(`/scholarship/:id`, verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const updateInfo = req.body;
       const quary = { _id: new ObjectId(id) };
@@ -192,46 +196,52 @@ async function run() {
       );
       res.send(result);
     });
-    //delete scholarship by id
-    app.delete(`/scholarship/:id`, async (req, res) => {
-      const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await AllScholarshipCollection.deleteOne(quary);
-      res.send(result);
-    });
+
+    //delete scholarship by id (admin)
+    app.delete(
+      `/scholarship/:id`,
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const quary = { _id: new ObjectId(id) };
+        const result = await AllScholarshipCollection.deleteOne(quary);
+        res.send(result);
+      }
+    );
 
     //******************Reviews************ */
-    //find all reaview
+    //find all reaview (open )
     app.get(`/reviews`, async (req, res) => {
       const result = await ReviewsCollection.find().toArray();
       res.send(result);
     });
 
-    //find review by email Reviewer_email
-    app.get("/review", async (req, res) => {
+    //find review by email Reviewer_email (user)
+    app.get("/review", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { Reviewer_email: email };
       const result = await ReviewsCollection.find(query).toArray();
       res.send(result);
     });
 
-    //post a review
-    app.post(`/review`, async (req, res) => {
+    //post a review (user)
+    app.post(`/review`, verifyToken, async (req, res) => {
       const review = req.body;
       const result = await ReviewsCollection.insertOne(review);
       res.send(result);
     });
 
-    // find  review info by id
-    app.get(`/reviews/:id`, async (req, res) => {
+    // find  review info by id (user)
+    app.get(`/reviews/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
       const result = await ReviewsCollection.findOne(quary);
       res.send(result);
     });
 
-    //update review info
-    app.put(`/review/:id`, async (req, res) => {
+    //update review info (user)
+    app.put(`/review/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const reviewInfo = req.body;
       const quary = { _id: new ObjectId(id) };
@@ -249,8 +259,8 @@ async function run() {
       res.send(result);
     });
 
-    //delete review
-    app.delete(`/review/:id`, async (req, res) => {
+    //delete review (user && admin)
+    app.delete(`/review/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
       const result = await ReviewsCollection.deleteOne(quary);
@@ -259,19 +269,20 @@ async function run() {
 
     //********Application***************/
 
-    //get all application information
+    //get all application information (admin)
     app.get(`/applications`, async (req, res) => {
       const result = await applyInfoCollection.find().toArray();
       res.send(result);
     });
-    //post application information in db
+
+    //post application information in db (user)
     app.post(`/application`, verifyToken, async (req, res) => {
       const application = req.body;
       const result = await applyInfoCollection.insertOne(application);
       res.send(result);
     });
 
-    // get  application info by id
+    // get  application info by id (user)
     app.get(`/applications/:id`, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
@@ -279,8 +290,8 @@ async function run() {
       res.send(result);
     });
 
-    //update application info
-    app.put(`/applications/:id`, async (req, res) => {
+    //update application info (user)
+    app.put(`/applications/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const applyInfo = req.body;
       const quary = { _id: new ObjectId(id) };
@@ -298,34 +309,44 @@ async function run() {
       res.send(result);
     });
 
-    //update application Status processing
-    app.patch(`/application/:id`, async (req, res) => {
-      const id = req.params.id;
-      const statusInfo = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          Status: "processing",
-        },
-      };
-      const result = await applyInfoCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
-    //update application Status complete
-    app.patch(`/applicationc/:id`, async (req, res) => {
-      const id = req.params.id;
-      const statusInfo = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          Status: "complete",
-        },
-      };
-      const result = await applyInfoCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
+    //update application Status processing (admin)
+    app.patch(
+      `/application/:id`,
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const statusInfo = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            Status: "processing",
+          },
+        };
+        const result = await applyInfoCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
+    //update application Status complete (admin)
+    app.patch(
+      `/applicationc/:id`,
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const statusInfo = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            Status: "complete",
+          },
+        };
+        const result = await applyInfoCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      }
+    );
 
-    //get application info by user email
+    //get application info by user email (user)
     app.get("/application", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { Applicant_email: email };
@@ -333,8 +354,8 @@ async function run() {
       res.send(result);
     });
 
-    //delete applicaation
-    app.delete(`/application/:id`, async (req, res) => {
+    //delete applicaation (user)
+    app.delete(`/application/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
       const result = await applyInfoCollection.deleteOne(quary);
@@ -343,7 +364,7 @@ async function run() {
 
     //**********payment *************** */
 
-    // payment intent
+    // payment intent (user)
     app.post("/create-payment-intent", verifyToken, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
@@ -366,7 +387,6 @@ async function run() {
       const paymentResult = await paymentCollection.insertOne(payment);
       res.send(paymentResult);
     });
-    //get payment information by email
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
