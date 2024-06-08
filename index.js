@@ -83,6 +83,19 @@ async function run() {
       next();
     };
 
+    //verify Moderator after verify token
+    const verifyModerator = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      const isModerator = result.role === "moderator";
+
+      if (!isModerator) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     // create token JWT**************************
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -108,8 +121,16 @@ async function run() {
     });
 
     //get all user information (Admin)
-    app.get(`/users`, verifyToken, async (req, res) => {
+    app.get(`/users`, async (req, res) => {
       const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // //get email by email
+    app.get(`/users/:email`, async (req, res) => {
+      const email = req.params.email;
+      const quary = { email: email };
+      const result = await userCollection.findOne(quary);
       res.send(result);
     });
 
@@ -136,6 +157,21 @@ async function run() {
       res.send({ admin });
     });
 
+    //get Moderator emeil,, load moderator email (useAdmin hook )
+    app.get(`/users/moderator/:email`, verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded?.email) {
+        return res.status(403).send({ message: "forbidden access!" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        moderator = user?.role === "moderator";
+      }
+      res.send({ moderator });
+    });
+
     //create admin (set admin in allUser (admin) page)
     app.patch(
       `/users/admin/:id`,
@@ -148,6 +184,25 @@ async function run() {
         const updateDoc = {
           $set: {
             role: "admin",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        console.log(result);
+        res.send(result);
+      }
+    );
+    //create Moderator (set admin in allUser (admin) page)
+    app.patch(
+      `/users/moderator/:id`,
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const id = req.params.id;
+        const userRole = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            role: "moderator",
           },
         };
         const result = await userCollection.updateOne(filter, updateDoc);
@@ -309,42 +364,46 @@ async function run() {
       res.send(result);
     });
 
+    //Give Feedback  (admin, moderator)
+    app.patch(`/application/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const statusInfo = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          Feedback: statusInfo,
+        },
+      };
+      const result = await applyInfoCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     //update application Status processing (admin)
-    app.patch(
-      `/application/:id`,
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const id = req.params.id;
-        const statusInfo = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: {
-            Status: "processing",
-          },
-        };
-        const result = await applyInfoCollection.updateOne(filter, updateDoc);
-        res.send(result);
-      }
-    );
+    app.patch(`/applicationp/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const statusInfo = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          Status: "processing",
+        },
+      };
+      const result = await applyInfoCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
     //update application Status complete (admin)
-    app.patch(
-      `/applicationc/:id`,
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const id = req.params.id;
-        const statusInfo = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: {
-            Status: "complete",
-          },
-        };
-        const result = await applyInfoCollection.updateOne(filter, updateDoc);
-        res.send(result);
-      }
-    );
+    app.patch(`/applicationc/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const statusInfo = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          Status: "complete",
+        },
+      };
+      const result = await applyInfoCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     //get application info by user email (user)
     app.get("/application", verifyToken, async (req, res) => {
