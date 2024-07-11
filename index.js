@@ -7,16 +7,25 @@ const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+const formData = require("form-data");
+const Mailgun = require("mailgun.js");
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAIL_GUN_API_KEY || "key-yourkeyhere",
+});
+
 //middleware
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "https://scholarship-management-system-server.vercel.app",
-    ],
-  })
-);
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:5173",
+//       "http://localhost:5174",
+//       "https://scholarship-management-system-server.vercel.app",
+//     ],
+//   })
+// );
+app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dnt5uti.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -60,7 +69,6 @@ async function run() {
     // create middelware
     //verify token
     const verifyToken = (req, res, next) => {
-      // console.log("this is headers : ", req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: "Unauthorize access!!" });
       }
@@ -200,29 +208,24 @@ async function run() {
       }
     );
     //create Moderator (set admin in allUser (admin) page)
-    app.patch(
-      `/users/moderator/:id`,
-      verifyToken,
-      verifyModerator,
-      async (req, res) => {
-        const id = req.params.id;
-        const userRole = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: {
-            role: "moderator",
-          },
-        };
-        const result = await userCollection.updateOne(filter, updateDoc);
-        console.log(result);
-        res.send(result);
-      }
-    );
+    app.patch(`/users/moderator/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const userRole = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "moderator",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      console.log(result);
+      res.send(result);
+    });
 
     //*********************All Scholarship************************** */
 
     //post scholarship
-    app.post(`/scholarship`, verifyToken, verifyAdmin, async (req, res) => {
+    app.post(`/scholarship`, verifyToken, async (req, res) => {
       const scholarInfo = req.body;
       const result = await AllScholarshipCollection.insertOne(scholarInfo);
       res.send(result);
@@ -242,7 +245,7 @@ async function run() {
     });
 
     //update scholarship information (admin)
-    app.put(`/scholarship/:id`, verifyToken, verifyAdmin, async (req, res) => {
+    app.put(`/scholarship/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
       const updateInfo = req.body;
       const quary = { _id: new ObjectId(id) };
@@ -261,17 +264,12 @@ async function run() {
     });
 
     //delete scholarship by id (admin)
-    app.delete(
-      `/scholarship/:id`,
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const id = req.params.id;
-        const quary = { _id: new ObjectId(id) };
-        const result = await AllScholarshipCollection.deleteOne(quary);
-        res.send(result);
-      }
-    );
+    app.delete(`/scholarship/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await AllScholarshipCollection.deleteOne(quary);
+      res.send(result);
+    });
 
     //******************Reviews************ */
     //find all reaview (open )
@@ -452,6 +450,19 @@ async function run() {
     app.post("/payments", verifyToken, async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
+
+      //send email
+      mg.messages
+        .create(process.env.MAIL_SENDING_DOMAIN, {
+          from: "Excited User <mailgun@sandbox0b6f4413e6f8484d8ab4d7d455fd4a6f.mailgun.org>",
+          to: ["aburahatshaum889@gmail.com"],
+          subject: "Thank you for applying ",
+          text: "Testing some Mailgun awesomeness!",
+          html: "<h1>Testing some Mailgun awesomeness!</h1>",
+        })
+        .then((msg) => console.log(msg)) // logs response data
+        .catch((err) => console.log(err)); // logs any error
+
       res.send(paymentResult);
     });
 
